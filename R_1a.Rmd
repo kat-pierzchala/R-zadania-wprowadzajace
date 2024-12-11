@@ -13,7 +13,6 @@ Kwota kredytu hipotecznego ze stałą ratą: K
 Roczna stopa oprocentowania: r
 Okres w miesiącach: n
 
-
 Wysokość oprocentowania miesięcznego:
 ```{r}
   op_miesięczne <- function(r) {
@@ -42,11 +41,13 @@ Całkowitą kwotę do spłaty F = R*n
   F <- kwota_do_spłaty(R, n)
   cat("Całkowita kwota do spłaty (F):", F)
 ```
+
+
+
 2.
 Kwota kredytu hipotecznego z ratą malejącą: K
 Roczna stopa oprocentowania: r
 Okres w miesiącach: n
-
 
 Wysokość części kapitałowej raty:
 ```{r}

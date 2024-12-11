@@ -1,0 +1,51 @@
+Przekształcanie danych.
+
+```{r}
+  df_BR <- readRDS('bank_register.rds')
+  head(df_BR, 10)
+```
+
+
+```{r}
+  df_BR$date <- as.Date(df_BR$date, format ='%b %d, %Y')
+  
+  convert_income <- function(x) {
+    x <- gsub("[,$]", "", x)
+    x <- gsub(".", "", x, fixed = TRUE)
+    x <- gsub(",", ".", x, fixed = TRUE)
+    x <- as.numeric(x)
+    return(x)
+  }
+
+  df_BR$income <- convert_income(df_BR$income)
+
+  split_data <- strsplit(as.character(df_BR$id), "_")
+  split_data2 <- strsplit(as.character(df_BR$demographic), ",")
+    
+  df_split <- do.call(rbind, split_data)
+  df_split2 <- do.call(rbind, split_data2)
+
+  df_split <- as.data.frame(df_split, stringsAsFactors = FALSE)
+  df_split2 <- as.data.frame(df_split2, stringsAsFactors = FALSE)
+  
+  colnames(df_split) <- c("client_ID", "agreement_ID")
+  colnames(df_split2) <- c("sex", "age", "child")
+    
+  df_BR <- cbind(df_split, df_BR)
+  df_BR <- cbind(df_BR, df_split2)
+
+  df_BR <- df_BR[, !names(df_BR) %in% c("id")]
+  df_BR <- df_BR[, !names(df_BR) %in% c("demographic")]
+
+  df_BR$dep <- grepl("\\bDEP\\b", df_BR$products)
+  df_BR$cre <- grepl("\\bDRE\\b", df_BR$products)
+  df_BR$mor <- grepl("\\bMOR\\b", df_BR$products)
+  
+  df_BR$dep <- ifelse(df_BR$dep, TRUE, FALSE)
+  df_BR$cre <- ifelse(df_BR$cre, TRUE, FALSE)
+  df_BR$mor <- ifelse(df_BR$mor, TRUE, FALSE)
+
+  df_BR <- df_BR[, !names(df_BR) %in% c("products")]
+  
+  head(df_BR, 10)
+```

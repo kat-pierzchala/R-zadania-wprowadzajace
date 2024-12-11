@@ -1,0 +1,224 @@
+
+```{r, echo=FALSE}
+pdf.options(encoding='ISOLatin2')
+```
+Podstawowa analiza danych klientów banku oraz danych dotyczących albumów muzycznych
+
+Dane:
+```{r}
+  wiek <- readRDS('age.rds')
+  df_age = as.data.frame(wiek, stringsAsFactors = FALSE)
+  
+  braki = sum(is.na(wiek))  # Liczba brakujących wartości w danych
+  braki
+   
+  DANE_WIEK <- na.omit(wiek)
+```
+
+
+1. Jaki wiek ma najmłodszy i najstarzy klient?
+```{r}
+  min_wiek = min(DANE_WIEK)
+  print(paste("Najmłodszy klient ma", min_wiek, "lat."))
+  
+  max_wiek = max(DANE_WIEK)
+  print(paste("Najstarszy klient ma", max_wiek, "lat."))
+```
+
+2. Jaki jest przeciętny wiek klientów banku?
+```{r}
+  średni_wiek = mean(DANE_WIEK)
+  print(paste("Przeciętny wiek klientów to", round(średni_wiek, 2), "lat."))
+```
+
+3. Jak bardzo zróżnicowani są klienci banku pod względem wieku?
+```{r}
+  odchylenie_std <- sd(DANE_WIEK)
+  print(paste("Odchylenie standardowe wieku klientów:", round(odchylenie_std,2)))
+```
+
+4. Ilu klientów banku jest niepełnoletnich? Jaki procent całości?
+```{r}
+  liczba_niepelnoletnich_klientów <- sum(DANE_WIEK < 18)
+  procent_niepelnoletnich_klientów <- (liczba_niepelnoletnich_klientów / length(wiek)) * 100
+
+  print(paste("Liczba klientów niepełnoletnich:", liczba_niepelnoletnich_klientów))
+  print(paste("Procent klientów niepełnoletnich:", round(procent_niepelnoletnich_klientów, 2), "%"))
+```
+
+5. Ilu klientów banku jest w wieku 30-50 lat? Jaki to procent całości?
+```{r}
+  klienci_30_50 <- sum(DANE_WIEK >= 30 & DANE_WIEK <= 50)
+  procent_30_50 <- (klienci_30_50 / length(wiek)) * 100
+  
+  print(paste("Liczba klientów w wieku 30-50:", klienci_30_50))
+  print(paste("Procent klientów w wieku 30-50:", round(procent_30_50, 2), "%"))
+```
+
+6. Ilu klientów nie podało swojego wieku? Jaki to procent całości?
+```{r}
+  procent_NA <- (braki / length(wiek)) * 100
+  print(paste("Liczba klientów, która nie podała wieku:", braki))
+  print(paste("Procent klientów, którzy nie podali wieku:", round(procent_NA, 2), "%"))
+```
+
+7. Ile klientów bank posiada w segmentach wiekowych [16,17], [18,24], [25,34],[35,44], [65, inf]? Jaki to procent całości?
+```{r}
+  segment_wiekowy <- cut(DANE_WIEK, breaks = c(16, 17, 24, 34, 44, Inf), right = TRUE, labels = c("[16,17]", "[18,24]", "[25,34]", "[35,44]", "[65,Inf]"))
+  
+  licznosc <- table(segment_wiekowy)
+  procenty <- prop.table(licznosc) * 100
+  
+  print("Liczba klientów w poszczególnych przedziałach wiekowych:")
+  print(licznosc)
+  
+  print("\nProcentowy udział klientów w poszczególnych przedziałach wiekowych:")
+  print(procenty)
+```
+
+
+
+
+
+
+Dane:
+```{r}
+  df_albumy = read.csv('albums.csv')
+  str(df_albumy)
+  head(df_albumy, 10)
+```
+
+```{r}
+  summary(df_albumy)
+```
+
+
+1. Średnia ocena dla każdej kolumny krytyków:
+```{r}
+  mean_rolling_stone <- mean(df_albumy$rolling_stone_critic, na.rm = TRUE)
+  mean_mtv <- mean(df_albumy$mtv_critic, na.rm = TRUE)
+  mean_music_maniac <- mean(df_albumy$music_maniac_critic, na.rm = TRUE)
+  cat("Średnia ocena Rolling Stone:", mean_rolling_stone, "\n")
+  cat("Średnia ocena MTV:", mean_mtv, "\n")
+  cat("Średnia ocena Music Maniac:", mean_music_maniac, "\n")
+```
+
+2. Korelacje między ocenami krytyków a liczbą sprzedanych płyt:
+```{r}
+  cor(df_albumy$rolling_stone_critic, df_albumy$num_of_sales, use = "complete.obs")
+  cor(df_albumy$mtv_critic, df_albumy$num_of_sales, use = "complete.obs")
+  cor(df_albumy$music_maniac_critic, df_albumy$num_of_sales, use = "complete.obs")
+```
+Wynik korelacji są bardzo bliskie zeru, co oznacza, że nie ma praktycznie żadnej linowej zależności między ocenami krytyków a liczbą sprzedanych płyt.
+
+
+3. Jaki zakres lat obejmuje zbiór?
+```{r}
+  min_rok = min(df_albumy$year_of_pub)
+  max_rok = max(df_albumy$year_of_pub)
+  print(paste("Zbiór obejmuje lata:", min_rok,"-", max_rok))
+```
+
+4. W jakim roku wyszło najwięcej albumów a w jakim najmniej?
+```{r}
+  liczba_albumow_na_rok <- aggregate(album_title ~ year_of_pub, data = df_albumy, FUN = length)
+  
+  rok_najwiecej_albumow <- liczba_albumow_na_rok[which.max(liczba_albumow_na_rok$album_title), "year_of_pub"]
+  rok_najmniej_albumow <- liczba_albumow_na_rok[which.min(liczba_albumow_na_rok$album_title), "year_of_pub"]
+  
+  print(paste("Najwięcej albumów wyszło w roku:", rok_najwiecej_albumow))
+  print(paste("Najmniej albumów wyszło w roku:", rok_najmniej_albumow))
+```
+
+5. Ile albumów średnio nagrywa artysta?
+```{r}
+  liczba_albumów <- aggregate(album_title ~ artist_id, data = df_albumy, FUN = length)
+  średnia_albumów <- mean(liczba_albumów$album_title)
+  średnia_albumów
+```
+
+6. Średnia liczba sprzedanych płyt przez artystę: 
+```{r}
+  suma_sprzedazy <- aggregate(num_of_sales ~ artist_id, data = df_albumy, sum)
+  srednia_sprzedaz <- mean(suma_sprzedazy$num_of_sales)
+  
+  print(paste("Średnia liczba sprzedanych płyt przez artystę:", round(srednia_sprzedaz,0)))
+```
+
+7. Który artysta sprzedał najwięcej płyt?
+```{r}
+  liczba_sprzedanych_plyt <- aggregate(num_of_sales ~ artist_id, data = df_albumy, sum)
+  najlepszy_artysta <- liczba_sprzedanych_plyt[which.max(liczba_sprzedanych_plyt$num_of_sales), ]
+  
+  print(paste("Najwięcej płyt sprzedał artysta o identyfikatorze:", najlepszy_artysta$artist_id))
+```
+
+8. Który album sprzedawał się najlepieja a który najgorzej?
+```{r}
+  album_najlepiej_sprzedajacy_sie <- df_albumy[which.max(df_albumy$num_of_sales), ]
+  album_najmniej_sprzedajacy_sie <- df_albumy[which.min(df_albumy$num_of_sales), ]
+  print(paste("Album sprzedający się najlepiej to:", album_najlepiej_sprzedajacy_sie$album_title))
+  print(paste("Album sprzedający się najsłabiej to:", album_najmniej_sprzedajacy_sie$album_title))
+```
+
+9. Który artysta ma najlepiej oceniane albumy? 
+```{r}
+  najlepiej_oceniany_artysta_RSM <- df_albumy[which.max(df_albumy$rolling_stone_critic), ]
+  print(paste("Najlepiej oceniany artysta według Rollinf Stone Critic to:", najlepiej_oceniany_artysta_RSM$artist_id))
+  
+  najlepiej_oceniany_artysta_MTV <- df_albumy[which.max(df_albumy$mtv_critic), ]
+  print(paste("Najlepiej oceniany artysta według MTV to:", najlepiej_oceniany_artysta_MTV$artist_id))
+  
+  najlepiej_oceniany_artysta_MM <- df_albumy[which.max(df_albumy$music_maniac_critic), ]
+  print(paste("Najlepiej oceniany artysta według Music Maniac Critic to:", najlepiej_oceniany_artysta_MM$artist_id))
+  
+  df_albumy$ocena_łączna <- df_albumy$rolling_stone_critic + df_albumy$mtv_critic + df_albumy$music_maniac_critic
+  najlepiej_oceniany_artysta_łącznie <- df_albumy[which.max(df_albumy$ocena_łączna), ]
+  print(paste("Najlepiej oceniany artysta łącznie to:", najlepiej_oceniany_artysta_łącznie$artist_id))
+```
+
+10. Czy najlepiej oceniany album należy do najlepiej ocenionego artysty? 
+```{r}
+  najlepszy_album_RSM <- df_albumy[which.max(df_albumy$rolling_stone_critic), ]
+  najlepszy_album_MTV <- df_albumy[which.max(df_albumy$mtv_critic), ]
+  najlepszy_album_MM <- df_albumy[which.max(df_albumy$music_maniac_critic), ]
+  
+  if (najlepszy_album_RSM$artist_id == najlepszy_album_MTV$artist_id &&
+      najlepszy_album_RSM$artist_id == najlepszy_album_MM$artist_id) {
+    print("Tak, najlepiej oceniany album należy do najlepiej ocenionego artysty.")
+  } else {
+    print("Nie, najlepiej oceniany album nie należy do najlepiej ocenionego artysty.")
+  }
+```
+
+11. Ile albumów przypada na każdy gatunek muzyczny?
+```{r}
+  gatunek_l_albumów<- aggregate(id ~ genre, data = df_albumy, FUN = length)
+  gatunek_l_albumów <- setNames(gatunek_l_albumów, c("genre", "nr_of_albums"))
+  gatunek_l_albumów <- gatunek_l_albumów[order(gatunek_l_albumów$nr_of_albums, decreasing = TRUE), ]
+  print(gatunek_l_albumów)
+```
+
+12. Jaki gatunek muzyczne najlepiej się sprzedaje?
+```{r}
+  sprzedaz_gatunku <- aggregate(num_of_sales ~ genre, data = df_albumy, sum)
+  najlepiej_sprzedajacy_sie_gatunek <- sprzedaz_gatunku[which.max(sprzedaz_gatunku$num_of_sales), ]
+  print(paste("Najlepiej sprzedający się gatunek muzyczny to:", najlepiej_sprzedajacy_sie_gatunek$genre))
+```
+
+13. Jaki gatunek ma najlepsze oceny?
+```{r}
+  df_albumy$srednia_ocen <- (df_albumy$rolling_stone_critic + df_albumy$mtv_critic + df_albumy$music_maniac_critic) / 3
+  najlepiej_oceniany_gatunek <- df_albumy[which.max(df_albumy$srednia_ocen), ]
+  
+  print(paste("Najlepiej oceniany gatunek muzyczny to:", najlepiej_oceniany_gatunek$genre))
+```
+
+14. Czy z biegiem lat płyty sprzedają się lepiej czy gorzej?
+```{r}
+  sprzedaz_na_rok <- aggregate(num_of_sales ~ year_of_pub, data = df_albumy, sum)
+  plot(sprzedaz_na_rok$year_of_pub, sprzedaz_na_rok$num_of_sales, type = "l", col = 'blue',
+       xlab = "Rok publikacji", ylab = "Liczba sprzedanych płyt",
+       main = "Zmiana sprzedaży płyt na przestrzeni lat")
+```
+

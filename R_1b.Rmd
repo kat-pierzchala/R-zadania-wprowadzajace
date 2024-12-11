@@ -1,0 +1,179 @@
+Symulacja działalności firmy ubezpieczeniowej
+
+
+A.
+
+liczba klienów: N
+wysokość składki: K
+kwota ubezpieczenia: F
+liczba miesięcy: T
+
+1. Przyjmij: t = 1
+2. Wyznacz rezerwę na wypłaty: St
+3. Wyznacz liczbę wypłat: a
+4. Wypłać odszkodowanie: St 
+
+5. Sprawdź płynność St >= 0
+  1. Jeśli spełnione -> zmodyfikuj liczbę ubezpieczonych do N = N + n - o - a
+     n - losowa liczba z przedziału od 0 do 100 nowych klientów
+     o - losowa liczba z przedziału od 0 do 90 klientów rezygnujących
+  2. Jeżeli nie spełnione -> firma zbandkrutowała. 
+  Zatrzymaj algorytm przed czasem.
+  
+6. Przyjmij t = t + 1
+7. Jeżeli t <= T, to przejdź do 2, w przeciwnym przypadku KONIEC.
+
+```{r}
+  # Parametry symulacji
+  N <- 2000     # Liczba początkowych klientów
+  K <- 1000     # Składka płatna przez każdego klienta
+  F <- 10000    # Kwota do wypłaty w przypadku zdarzenia
+  
+  T <- 12       # Liczba miesięcy symulacji
+  
+  t <- 1       # 1. Numer miesiąca
+  St <- K * N  # 2. Rezerwa na wypłaty na początku symulacji gdy t=1
+  
+  symulacja_ubezpieczenia <- function(K, N, F, T) {
+      
+    while (t <= T) {
+      # 3. Wyznaczenie liczby wypłat a
+      cn <- rt(1, df = 2)   # Rozkład t-studenta z df = 2
+      a <- sum(cn >= qt(0.9999, df = 2))  # Ilość wypłat
+      # 4. Wypłacenie odszkodowania
+      St <- St - a * F
+      # 5, Sprawdzenie płynności
+      # 5.1
+      if (St >= 0) {
+        # Zmodyfikowanie liczby ubezpieczonych
+        n <- sample(0:100, 1)   # Losowa liczba nowych klientów
+        o <- sample(0:90, 1)    # Losowa liczba klientów rezygnujących
+        N <- N + n - o - a      # Aktualizacja liczby ubezpieczonych
+        
+        # Wyświetlenie informacji
+        cat("Miesiąc:", t, "\n")
+        cat("Liczba nowych klientów:", n, "\n")
+        cat("Liczba rezygnujących klientów:", o, "\n")
+        cat("Liczba wypłat:", a, "\n")
+        cat("Rezerwa po wypłatach:", St, "\n")
+        cat("Liczba ubezpieczonych:", N, "\n\n")
+      } 
+      # 5.2
+      else {
+        # Firma zbankrutowała
+        cat("Firma zbankrutowała w miesiącu", t, ". Koniec symulacji.\n")
+        break
+      }
+      # 6. Przejście do kolejnego miesiąca
+      t <- t + 1
+      # Aktualizacja rezerwy na wypłaty na początku kolejnego miesiąca
+      St <- St + K * N
+    }
+    if (t > T) {
+      cat("Symulacja zakończona po", T, "miesiącach.\n")
+    }
+  }
+  
+  symulacja_ubezpieczenia(K, N, F, T)
+```
+
+
+B.
+
+1. Funkcja przeprowadzająca zaprojektowaną symulację:
+  1. o argumentach K, N, F, T z wartościami domyślnymi
+  2. zwracająca wektor St, długości T jako wynik, jeśli firma zbankrutowała w wektorze powinny od tego momentu znajdować się wartości NA
+```{r}
+  symulacja_ubezpieczenia <- function(K=1000, N=2000, F=1000, T=12) {
+    
+    St <- numeric(T)
+    St[1] <- K * N
+    for (t in 2:T) {
+      St[t] <- St[t - 1] + K * N
+      cn <- rt(N, df = 2) 
+      a <- sum(cn >= qt(0.9999, df = 2))
+      St[t] <- St[t] - a * F
+      if (St[t] < 0) {
+        St[t] <- NA
+        if (t < T) {
+          St[(t+1):T] <- NA
+        }
+        break
+      }
+      n <- sample(0:100, 1)  
+      o <- sample(0:90, 1)  
+      N <- N + n - o - a 
+      if (N < 0) {
+      N <- 0
+      }
+    }
+  return(St)
+  }
+  symulacja <- symulacja_ubezpieczenia(K, N, F, T)
+  print(symulacja)
+```
+
+2. Symulacja ubezpieczneia wykonana M razy. Wyniki w macierzy SIM.
+```{r}
+  parametry <- list(
+    list(K = 10, N = 200, F = 100, T = 12),
+    list(K = 16, N = 270, F = 50, T = 12),
+    list(K = 10, N = 180, F = 70, T = 12),
+    list(K = 53, N = 16, F = 87, T = 12)
+  )
+
+  M = length(parametry)
+  wyniki <- matrix(NA, nrow = length(parametry), ncol = T)
+
+    for (i in 1:M) {
+      paramenty_i <- parametry[[i]]
+      wyniki[i, ] <- symulacja_ubezpieczenia(paramenty_i$K, paramenty_i$N, paramenty_i$F, paramenty_i$T)
+    }
+
+  print(wyniki)
+```
+
+3. Prawdopodobieństwo tego, że spółka nie zbankrutuje do chwili t=1,2....,T:
+```{r}
+  wyniki_s = wyniki
+
+    prob_S <- function(wyniki_s) {
+      T <- ncol(wyniki_s)
+      N <- nrow(wyniki_s)
+      prawdopodobienstwo <- numeric(T)
+      
+      for (t in 1:T) {
+        prawdopodobienstwo[t] <- sum(!is.na(wyniki_s[, t])) / N
+      }
+      return(prawdopodobienstwo)
+    }
+    wynik_prob <- prob_S(wyniki_s)
+    print(wynik_prob)
+```
+
+  Średni poziom rezerw spółki pod warunkiem, że nie zbankrutuje do chwili t=1,2....,T:
+```{r}
+  sredni_poziom_rezerw <- function(wyniki) {
+    T <- ncol(wyniki)
+    srednie_rezerwy <- numeric(T)
+    
+    for (t in 1:T) {
+      rezerwy <- wyniki[!is.na(wyniki[, t]), t]
+      srednie_rezerwy[t] <- mean(rezerwy, na.rm = TRUE)
+    }
+    return(srednie_rezerwy)
+  }
+  srednie_rezerwy <- sredni_poziom_rezerw(wyniki)
+  print(srednie_rezerwy)
+```
+
+  Oczekiwany okres życia spółki przy założeniu, że maksymalny czas jej życia wynosi T:
+```{r}
+  oczekiwany_okres_zycia <- function(wyniki, T) {
+    okres_zycia <- apply(!is.na(wyniki), 1, function(x) sum(x))
+    sredni_okres_zycia <- mean(okres_zycia)
+    return(sredni_okres_zycia)
+  }
+  sredni_okres_zycia <- oczekiwany_okres_zycia(wyniki, T)
+  print(sredni_okres_zycia)
+```
